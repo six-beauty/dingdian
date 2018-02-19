@@ -4,6 +4,8 @@ from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 from dingdian import db
 from dingdian import create_app
+import logging
+import logging.handlers
 
 
 app = create_app(os.getenv('CONFIG') or 'default')
@@ -36,4 +38,22 @@ def deploy():
     Alembic.clear_A()
 
 if __name__ == '__main__':
+    log_dir = '%s/log/dingdian'%os.environ['HOME']
+    #log_dir = '/home/sany/log/dingdian'
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir)
+    logging.basicConfig(level=logging.INFO,
+        format='[%(asctime)s %(name)-12s %(levelname)-s] %(message)s',
+        datefmt='%m-%d %H:%M:%S',
+        #filename=time.strftime('log/dump_analyze.log'),
+        filemode='a')
+    htimed = logging.handlers.TimedRotatingFileHandler("%s/dingdian.log"%(log_dir), 'D', 1, 0)
+    htimed.suffix = "%Y%m%d-%H%M"
+    htimed.setLevel(logging.INFO)
+    formatter = logging.Formatter('[%(asctime)s %(name)-12s %(levelname)-s] %(message)s', datefmt='%m-%d %H:%M:%S')
+    htimed.setFormatter(formatter)
+    #day time split log file
+    logging.getLogger('').addHandler(htimed)
+    logging.info("dingdian started")
+
     manager.run()

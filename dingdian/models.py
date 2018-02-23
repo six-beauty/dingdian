@@ -7,13 +7,13 @@ class Novel(db.Model):
     __tablename__ = 'novels'
     id = db.Column(db.Integer, primary_key=True)
     book_name = db.Column(db.String(64), index=True)
-    book_url = db.Column(db.String)
-    book_img = db.Column(db.String)
+    book_url = db.Column(db.String(128))
+    book_img = db.Column(db.String(128))
     author = db.Column(db.String(64))
     style = db.Column(db.String(64), nullable=True)
     last_update = db.Column(db.String(64), nullable=True)
     profile = db.Column(db.Text, nullable=True)
-    search_name = db.Column(db.String)
+    search_name = db.Column(db.String(64))
     page = db.Column(db.Integer)
 
     chapters = db.relationship('Chapter', backref='book', lazy='dynamic')
@@ -39,7 +39,8 @@ class Chapter(db.Model):
     __tablename__ = 'chapters'
     id = db.Column(db.Integer, primary_key=True)
     chapter = db.Column(db.String(64))
-    chapter_url = db.Column(db.String, index=True)
+    chapter_id = db.Column(db.Integer, unique=True)
+    chapter_url = db.Column(db.String(128))
 
     article = db.relationship('Article', backref='chapter', lazy='dynamic')
     book_id = db.Column(db.Integer, db.ForeignKey('novels.id'))
@@ -78,7 +79,6 @@ class Alembic(db.Model):
     @staticmethod
     def clear_A():
         for a in Alembic.query.all():
-            print(a.version_num)
             db.session.delete(a)
         db.session.commit()
         print('======== data in Table: Alembic cleared!')

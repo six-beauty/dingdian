@@ -59,11 +59,17 @@ def result(search):
 @main.route('/chapter/<int:book_id>')
 def chapter(book_id):
     page = request.args.get('page', 1, type=int)
+    desc = request.args.get('desc', 0, type=int)
+    if desc == 0:
+        chapter_order = Chapter.chapter_id.asc()
+    else:
+        chapter_order = Chapter.chapter_id.desc()
+
     last_chapter = db.session.query(Chapter.chapter_id).filter_by(book_id=book_id).order_by(Chapter.chapter_id.desc()).first()
     book = Novel.query.filter_by(id=book_id).first()
     if last_chapter:
         #last page, spider try again
-        pagination = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
+        pagination = db.session.query(Chapter).filter_by(book_id=book_id).order_by(chapter_order).paginate(
             page, per_page=current_app.config['CHAPTER_PER_PAGE'],
             error_out=False
         )
@@ -84,12 +90,12 @@ def chapter(book_id):
                 db.session.execute(Chapter.__table__.insert().prefix_with('IGNORE'), data)
             if len(chapter_dict) > 0 :
                 db.session.commit()
-                pagination = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
+                pagination = db.session.query(Chapter).filter_by(book_id=book_id).order_by(chapter_order).paginate(
                     page, per_page=current_app.config['CHAPTER_PER_PAGE'],
                     error_out=False
                 )
         chapters = pagination.items
-        return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination)
+        return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination, desc=desc)
 
     #spider
     spider = DdSpider()
@@ -104,13 +110,13 @@ def chapter(book_id):
         db.session.execute(Chapter.__table__.insert().prefix_with('IGNORE'), data)
     db.session.commit()
 
-    pagination2 = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
+    pagination2 = db.session.query(Chapter).filter_by(book_id=book_id).order_by(chapter_order).paginate(
         page, per_page=current_app.config['CHAPTER_PER_PAGE'],
         error_out=False
     )
     chapters = pagination2.items
 
-    return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination2)
+    return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination2, desc=desc)
 
 @main.route('/content/<int:chapter_id>')
 def content(chapter_id):

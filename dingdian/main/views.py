@@ -59,25 +59,52 @@ def result(search):
 @main.route('/chapter/<int:book_id>')
 def chapter(book_id):
     page = request.args.get('page', 1, type=int)
-    all_chapter = Chapter.query.filter_by(book_id=book_id).first()
-    # print(type(pagination))
-    if all_chapter:
-        pagination = Chapter.query.filter_by(book_id=book_id).paginate(
-                page, per_page=current_app.config['CHAPTER_PER_PAGE'],
-                error_out=False
+    last_chapter = db.session.query(Chapter.chapter_id).filter_by(book_id=book_id).order_by(Chapter.chapter_id.desc()).first()
+    book = Novel.query.filter_by(id=book_id).first()
+    if last_chapter:
+        #last page, spider try again
+        pagination = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
+            page, per_page=current_app.config['CHAPTER_PER_PAGE'],
+            error_out=False
         )
+
+        if not pagination.has_next:
+            chapter_dict = {}
+
+            spider = DdSpider()
+            for data in spider.get_chapter(book.book_url):
+                chapter_id = int(data['url'].split('/')[-1].split('.')[0])
+                if chapter_id <= last_chapter.chapter_id:
+                    continue
+                #sort by chapter_id
+                chapter_dict[chapter_id] = {'book_id':book_id, 'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
+
+            for chapter_id in sorted(chapter_dict.keys()):
+                data = chapter_dict[chapter_id]
+                db.session.execute(Chapter.__table__.insert().prefix_with('IGNORE'), data)
+            if len(chapter_dict) > 0 :
+                db.session.commit()
+                pagination = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
+                    page, per_page=current_app.config['CHAPTER_PER_PAGE'],
+                    error_out=False
+                )
         chapters = pagination.items
-        book = Novel.query.filter_by(id=book_id).first()
         return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination)
 
+    #spider
     spider = DdSpider()
-    book = Novel.query.filter_by(id=book_id).first()
+    chapter_dict = {}
     for data in spider.get_chapter(book.book_url):
-        chapter = Chapter(chapter=data['chapter'],
-                           chapter_url=data['url'],
-                           book_id=book_id)
-        db.session.add(chapter)
-    pagination2 = Chapter.query.filter_by(book_id=book_id).paginate(
+        chapter_id = data['url'].split('/')[-1].split('.')[0]
+        #sort by chapter_id
+        chapter_dict[chapter_id] = {'book_id':book_id, 'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
+
+    for chapter_id in sorted(chapter_dict.keys()):
+        data = chapter_dict[chapter_id]
+        db.session.execute(Chapter.__table__.insert().prefix_with('IGNORE'), data)
+    db.session.commit()
+
+    pagination2 = db.session.query(Chapter).filter_by(book_id=book_id).paginate(
         page, per_page=current_app.config['CHAPTER_PER_PAGE'],
         error_out=False
     )
@@ -105,17 +132,34 @@ def content(chapter_id):
 def next(chapter_id):
     chapter = Chapter.query.filter_by(id=chapter_id).first()
     book = Novel.query.filter_by(id=chapter.book_id).first()
-    # print(type(all_chapters))
     all_chapters = [i for i in book.chapters]
     # all_chapters是一个集合,通过操作数组很容易拿到下一章内容
     if all_chapters[-1] != chapter:
         next_chapter = all_chapters[all_chapters.index(chapter)+1]
         return redirect(url_for('main.content', chapter_id=next_chapter.id))
     else:
-        flash('已是最后一章了。')
-        return redirect(url_for('main.content', chapter_id=chapter_id))
+        chapter_dict = {}
+        spider = DdSpider()
+        for data in spider.get_chapter(book.book_url):
+            chapid = int(data['url'].split('/')[-1].split('.')[0])
+            if chapid <= chapter.chapter_id:
+                continue
+            #sort by chapter_id
+            chapter_dict[chapid] = {'book_id':chapter.book_id, 'chapter_id':chapid, 'chapter':data['chapter'], 'chapter_url':data['url']}
 
-# 上一章
+        for chapid in sorted(chapter_dict.keys()):
+            data = chapter_dict[chapid]
+            db.session.execute(Chapter.__table__.insert().prefix_with('IGNORE'), data)
+        db.session.commit()
+
+        #没有更新
+        if len(chapter_dict) == 0 :
+            flash('已是最后一章了。')
+            return redirect(url_for('main.content', chapter_id=chapter_id))
+
+    return next(chapter_id)
+
+
 @main.route('/prev/<int:chapter_id>')
 def prev(chapter_id):
     chapter = Chapter.query.filter_by(id=chapter_id).first()

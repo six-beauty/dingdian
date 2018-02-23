@@ -15,27 +15,25 @@ manager.add_command('db', MigrateCommand)
 
 @manager.command
 def deploy():
-    # from flask_migrate import upgrade
+    from flask_migrate import upgrade
     # 情况数据库的操作只在运行过后才可以取消注释使用
-    # from dingdian.models import Search, Novel, Chapter, Article
-    #
-    # # 清空数据库
-    # searchs = Search.query.all()
-    # for s in searchs:
-    #     db.session.delete(s)
-    # novels = Novel.query.all()
-    # for n in novels:
-    #     db.session.delete(n)
-    # chapters = Chapter.query.all()
-    # for c in chapters:
-    #     db.session.delete(c)
-    # articles = Article.query.all()
-    # for a in articles:
-    #     db.session.delete(a)
+    from dingdian.models import Alembic, Novel, Chapter, Article
+    
+    # 清空数据库
+    alembics = Alembic.query.all()
+    for s in alembics:
+        db.session.delete(s)
+    novels = Novel.query.all()
+    for n in novels:
+        db.session.delete(n)
+    chapters = Chapter.query.all()
+    for c in chapters:
+        db.session.delete(c)
+    articles = Article.query.all()
+    for a in articles:
+        db.session.delete(a)
 
-    # db.session.commit()
-    from dingdian.models import Alembic
-    Alembic.clear_A()
+    db.session.commit()
 
 if __name__ == '__main__':
     log_dir = '%s/log/dingdian'%os.environ['HOME']

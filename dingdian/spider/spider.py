@@ -76,11 +76,15 @@ class DdSpider(object):
         resp = self.parse_url(url)
         html = etree.HTML(resp)
         content = html.xpath('//*[@id="content"]/text()')
+        if '<' in content[0] or '>' in content[0]:
+            del content[0]
+            #content[0] = content[0].replace('<', '&lt;')
+            #content[0] = content[0].replace('>', '&gt;')
         return '<br>'.join(content)
 
 
-# dd = DdSpider()
-# # for i in dd.get_index_result('诛仙',page=0):
-# #     print(i)
-# print(dd.get_article('http://www.23us.cc/html/138/138189/7009918.html'))
+#dd = DdSpider()
+#for i in dd.get_index_result('逆流纯真年代',page=0):
+#    print(i)
+#print(dd.get_article('http://www.23us.cc/html/138/138189/7009918.html'))
 

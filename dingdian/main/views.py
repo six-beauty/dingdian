@@ -120,18 +120,25 @@ def chapter(book_id):
 
 @main.route('/content/<int:chapter_id>')
 def content(chapter_id):
-    book_id = Chapter.query.filter_by(id=chapter_id).first().book_id
+    chapter = Chapter.query.filter_by(id=chapter_id).first()
     article = Article.query.filter_by(chapter_id=chapter_id).first()
     if article:
+        #需要更新
+        if '正在手打中' in article.content or '内容更新后' in article.content:
+            spider = DdSpider()
+            cont2 = spider.get_article(chapter.chapter_url)
+            if not '正在手打中，请稍等片刻，内容更新后，需要重新刷新页面' in cont2 or article.content!=cont2:
+                article.content = cont2
+                db.session.commit()
+
         chapter = Chapter.query.filter_by(id=chapter_id).first()
-        return render_template('article.html', chapter=chapter, article=article, book_id=book_id)
+        return render_template('article.html', chapter=chapter, article=article, book_id=chapter.book_id)
 
     spider = DdSpider()
-    chapter = Chapter.query.filter_by(id=chapter_id).first()
     article2 = Article(content=spider.get_article(chapter.chapter_url),
                       chapter_id=chapter_id)
     db.session.add(article2)
-    return render_template('article.html', chapter=chapter, article=article2, book_id=book_id)
+    return render_template('article.html', chapter=chapter, article=article2, book_id=chapter.book_id)
 
 # 下一章
 @main.route('/next/<int:chapter_id>')
@@ -146,10 +153,12 @@ def next(chapter_id):
     else:
         chapter_dict = {}
         spider = DdSpider()
+        print('--next chapter_id:%s'%chapter.chapter_id)
         for data in spider.get_chapter(book.book_url):
             chapid = int(data['url'].split('/')[-1].split('.')[0])
             if chapid <= chapter.chapter_id:
                 continue
+            print('new chapter:%s'%chapid)
             #sort by chapter_id
             chapter_dict[chapid] = {'book_id':chapter.book_id, 'chapter_id':chapid, 'chapter':data['chapter'], 'chapter_url':data['url']}
 

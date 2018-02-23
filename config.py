@@ -17,9 +17,14 @@ class Config:
         pass
 
 class DevelopmentConfig(Config):
+    SQLALCHEMY_DATABASE_URI = 'mysql://sany:kelyn@2017@127.0.0.1:3306/dingdian'
+    DEBUG = True
+
+class SqliteConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
     DEBUG = True
+
 
 class HerokuConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \

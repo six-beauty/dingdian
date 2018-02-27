@@ -73,8 +73,8 @@ def chapter(book_id):
             page, per_page=current_app.config['CHAPTER_PER_PAGE'],
             error_out=False
         )
-
-        if not pagination.has_next:
+        #last page
+        if (desc==0 and not pagination.has_next) or (desc==1 and not pagination.has_prev):
             chapter_dict = {}
 
             spider = DdSpider()

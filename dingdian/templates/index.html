@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}
-MyNovels
+Tomatow Novels
 {% endblock %}
 
 {% block content %}
-<h3 align="center">搜索</h3><hr>
+<h3 align="center">番茄小说</h3><hr>
 <form action="" method="post" name="search">
 {{form.hidden_tag()}}
 {{form.search_name(class="form-control",placeholder="输入你要搜索的书名")}}
@@ -18,4 +18,9 @@ MyNovels
 {% block script %}
 {{ super() }}
 {% endblock %}
+<footer>
+    番茄系列:
+    <a href="http://tomatow.top/magnetic">番茄磁力搜索</a>
+
+</footer>
 {% endblock %}

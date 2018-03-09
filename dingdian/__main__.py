@@ -13,7 +13,7 @@ import typing
 db = dingdian.db
 
 def main():
-    log_dir = '%s/log/dingdian2'%os.environ['HOME']
+    log_dir = '%s/log/dingdian'%os.environ['HOME']
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
     logging.basicConfig(level=logging.INFO,

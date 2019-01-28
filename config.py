@@ -17,7 +17,7 @@ class Config:
         pass
 
 class DevelopmentConfig(Config):
-    SQLALCHEMY_DATABASE_URI = 'mysql://sany:kelyn@2017@127.0.0.1:3306/dingdian'
+    SQLALCHEMY_DATABASE_URI = 'mysql://sany:kelyn@2017@127.0.0.1:3306/dingdian2'
     DEBUG = True
 
 class SqliteConfig(Config):
@@ -43,6 +43,6 @@ class HerokuConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'heroku': HerokuConfig,
-    'default': DevelopmentConfig
+    'default': DevelopmentConfig,
 }
 

@@ -11,7 +11,7 @@ class Novel(db.Model):
     book_img = db.Column(db.String(128))
     author = db.Column(db.String(64))
     style = db.Column(db.String(64), nullable=True)
-    last_update = db.Column(db.String(64), nullable=True)
+    last_state= db.Column(db.String(64), nullable=True)
     profile = db.Column(db.Text, nullable=True)
     search_name = db.Column(db.String(64))
     page = db.Column(db.Integer)
@@ -26,7 +26,7 @@ class Novel(db.Model):
             'book_img': self.book_img,
             'author': self.author,
             'style': self.style,
-            'last_update': self.last_update,
+            'last_state': self.last_state,
             'profile': self.profile,
         }
         return json_novel

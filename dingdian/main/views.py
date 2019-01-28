@@ -5,9 +5,11 @@ from dingdian import db
 from .forms import SearchForm
 from ..spider.spider import DdSpider
 from ..models import Novel, Chapter, Article
-
+import redis
+import traceback
 
 main = Blueprint('main', __name__)
+rdb = None
 
 @main.errorhandler(404)
 def page_not_found(error):
@@ -49,7 +51,7 @@ def result(search):
                       author=data['author'],
                       style=data['style'],
                       profile=data['profile'],
-                      last_update=data['time'],
+                      last_state=data['state'],
                       page=page,
                       search_name=search)
         db.session.add(novel)
@@ -101,7 +103,7 @@ def chapter(book_id):
     spider = DdSpider()
     chapter_dict = {}
     for data in spider.get_chapter(book.book_url):
-        chapter_id = data['url'].split('/')[-1].split('.')[0]
+        chapter_id = int(data['url'].split('/')[-1].split('.')[0])
         #sort by chapter_id
         chapter_dict[chapter_id] = {'book_id':book_id, 'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
 
@@ -140,6 +142,38 @@ def content(chapter_id):
     db.session.add(article2)
     return render_template('article.html', chapter=chapter, article=article2, book_id=chapter.book_id)
 
+@main.route('/letter/<receiver>')
+def letter_torecv(receiver):
+    global rdb
+    try:
+        if not rdb:
+            rdb = redis.StrictRedis(host='127.0.0.1', port=52021, password='sany')
+
+        content = rdb.get('%s_content'%receiver)
+        if content:
+            content = content.decode('utf-8')
+        else:
+            content = 'test \n\r    test  中文'
+
+        content = content.replace(' ', '\xa0')
+        content = content.replace('\n', '\r<br>')
+        content = '\n'+content
+
+        title = rdb.get('%s_title'%receiver) 
+        if title:
+            title = title.decode('utf-8')
+        else:
+            title = '标题1'
+
+    except Exception as e:
+        print(traceback.format_exc())
+        rdb = None
+        return render_template('500.html'), 500
+
+    article2 = Article(content=content, chapter_id=0)
+    chapter = Chapter(id=1, chapter=title, chapter_id=0, chapter_url='tomatopw.top/novel', book_id=1)
+    return render_template('article.html', chapter=chapter, article=article2, book_id=chapter.book_id)
+
 # 下一章
 @main.route('/next/<int:chapter_id>')
 def next(chapter_id):
@@ -153,12 +187,10 @@ def next(chapter_id):
     else:
         chapter_dict = {}
         spider = DdSpider()
-        print('--next chapter_id:%s'%chapter.chapter_id)
         for data in spider.get_chapter(book.book_url):
             chapid = int(data['url'].split('/')[-1].split('.')[0])
             if chapid <= chapter.chapter_id:
                 continue
-            print('new chapter:%s'%chapid)
             #sort by chapter_id
             chapter_dict[chapid] = {'book_id':chapter.book_id, 'chapter_id':chapid, 'chapter':data['chapter'], 'chapter_url':data['url']}
 

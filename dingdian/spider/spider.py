@@ -32,21 +32,21 @@ class DdSpider(object):
     # 搜索结果页数据
     def get_index_result(self, search, page=0):
         if page == 0:
-            url = 'http://zhannei.baidu.com/cse/search?s=1682272515249779940&entry=1&q={search}'.format(search=search)
+            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid=0'.format(search=search)
         else:
-            url = 'http://zhannei.baidu.com/cse/search?q={search}&p={page}&s=1682272515249779940'.format(
-                search=search, page=page)
+            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid={page}'.format(search=search, page=page)
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        titles = html.xpath('//*[@id="results"]/div/div/div/h3/a/@title')
-        urls = html.xpath('//*[@id="results"]/div/div/div/h3/a/@href')
-        images = html.xpath('//*[@id="results"]/div/div/div/a/img/@src')
-        authors = html.xpath('//*[@id="results"]/div/div/div/div/p[1]/span[2]/text()')
-        profiles = html.xpath('//*[@id="results"]/div/div/div/p/text()')
-        styles = html.xpath('//*[@id="results"]/div/div/div/div/p[2]/span[2]/text()')
-        times = html.xpath('//*[@id="results"]/div/div/div/div/p[3]/span[2]/text()')
-        for title, url, image, author, profile, style, tim in zip(titles, urls, images, authors, profiles, styles,
-                                                                  times):
+        titles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@title')
+        urls  = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@href')
+
+        images = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-pic"]/a/img/@src')
+        profiles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/p[@class="result-game-item-desc"]/text()')
+        authors = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[1]/span[2]/text()')
+        styles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[2]/span[2]/text()')
+        states = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[3]/span[2]/text()')
+        for title, url, image, author, profile, style, state in zip(titles, urls, images, authors, profiles, styles,
+                                                                  states):
             data = {
                 'title': title.strip(),
                 'url': url,
@@ -54,7 +54,7 @@ class DdSpider(object):
                 'author': author.strip(),
                 'profile': profile.strip().replace('\u3000', '').replace('\n', ''),
                 'style': style.strip(),
-                'time': tim.strip()
+                'state': state.strip()
             }
             yield data
 
@@ -62,11 +62,13 @@ class DdSpider(object):
     def get_chapter(self, url):
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        chapters = html.xpath('//*[@id="main"]/div/dl/dd/a/text()')
-        urls = html.xpath('//*[@id="main"]/div/dl/dd/a/@href')
+        chapters = html.xpath('//*[@class="listmain"]/dl/dd/a/text()')
+        urls = html.xpath('//*[@class="listmain"]/dl/dd/a/@href')
+
+        url = url.replace('index.html', '')
         for chapter_url, chapter in zip(urls, chapters):
             data = {
-                'url': str(url) + chapter_url,
+                'url': url + chapter_url,
                 'chapter': chapter
             }
             yield data
@@ -84,7 +86,21 @@ class DdSpider(object):
 
 
 #dd = DdSpider()
-#for i in dd.get_index_result('逆流纯真年代',page=0):
-#    print(i)
-#print(dd.get_article('http://www.23us.cc/html/138/138189/7009918.html'))
+'''
+for i in dd.get_index_result('赘婿',page=0):
+    print(i)
+'''
+#url='http://www.shuquge.com/txt/73808/17088548.html'
+#print(dd.get_article(url))
 
+'''
+url = 'http://www.shuquge.com/txt/4833/index.html'
+chapter_dict={}
+for data in dd.get_chapter(url):
+    chapter_id = int(data['url'].split('/')[-1].split('.')[0])
+    #sort by chapter_id
+    chapter_dict[chapter_id] = {'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
+
+for chapter_id in sorted(chapter_dict.keys()):
+    print(chapter_id)
+'''

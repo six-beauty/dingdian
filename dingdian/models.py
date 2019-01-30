@@ -7,14 +7,13 @@ class Novel(db.Model):
     __tablename__ = 'novels'
     id = db.Column(db.Integer, primary_key=True)
     book_name = db.Column(db.String(64), index=True)
-    book_url = db.Column(db.String(128))
+    book_url = db.Column(db.String(128), unique=True)
     book_img = db.Column(db.String(128))
     author = db.Column(db.String(64))
     style = db.Column(db.String(64), nullable=True)
     last_state= db.Column(db.String(64), nullable=True)
     profile = db.Column(db.Text, nullable=True)
     search_name = db.Column(db.String(64))
-    page = db.Column(db.Integer)
 
     chapters = db.relationship('Chapter', backref='book', lazy='dynamic')
 

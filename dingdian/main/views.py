@@ -7,9 +7,21 @@ from ..spider.spider import DdSpider
 from ..models import Novel, Chapter, Article
 import redis
 import traceback
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import Insert
+
+@compiles(Insert)
+def append_string(insert, compiler, **kw):
+    s = compiler.visit_insert(insert, **kw)
+    if 'append_string' in insert.kwargs:
+        return s + " " + insert.kwargs['append_string']
+    return s
+Insert.argument_for("mysql", "append_string", None)
+
 
 main = Blueprint('main', __name__)
 rdb = None
+
 
 @main.errorhandler(404)
 def page_not_found(error):
@@ -38,25 +50,18 @@ def index():
 def result(search):
     page = request.args.get('page', 0, type=int)
     # 查找数据库中search键相等的结果，如果有则不需要调用爬虫，直接返回
-    books = Novel.query.filter_by(search_name=search, page=page).all()
-    if books:
+    books = Novel.query.filter_by(search_name=search).all()
+    if books and page==0:
         return render_template('result.html', search=search, page=page, books=books)
 
     spider = DdSpider()
 
-    for data in spider.get_index_result(search, page):
-        novel = Novel(book_name=data['title'],
-                      book_url=data['url'],
-                      book_img=data['image'],
-                      author=data['author'],
-                      style=data['style'],
-                      profile=data['profile'],
-                      last_state=data['state'],
-                      page=page,
-                      search_name=search)
-        db.session.add(novel)
-    books = Novel.query.filter_by(search_name=search, page=page).all()
-    return render_template('result.html', search=search, page=page, books=books)
+    for data in spider.get_index_result(search):
+        novel = {"book_name":data['title'], "book_url":data['url'], "book_img":data['image'], "author":data['author'],
+                "style":data['style'], "profile":data['profile'], "last_state":data['state'], "search_name":search}
+        db.session.execute(Novel.__table__.insert(append_string='ON DUPLICATE KEY UPDATE profile=values(profile), last_state=values(last_state)'), novel)
+    books = Novel.query.filter_by(search_name=search).all()
+    return render_template('result.html', search=search, page=0, books=books)
 
 @main.route('/chapter/<int:book_id>')
 def chapter(book_id):

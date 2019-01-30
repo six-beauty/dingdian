@@ -66,7 +66,7 @@ def parse_args() -> argparse.Namespace:
         help="the host address dingdian web server should listen on"
     )
     parser.add_argument(
-        "--port", action="store", type=int, required=True,
+        "--port", action="store", type=int, required=False, default=5003,
         help="the port number dingdian web server should listen on"
     )
 

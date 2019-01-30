@@ -2,6 +2,10 @@
 import requests
 from lxml import etree
 from requests.exceptions import ConnectionError
+try:
+    import pinyin
+except:
+    from ..spider import pinyin
 
 
 """
@@ -31,26 +35,36 @@ class DdSpider(object):
 
     # 搜索结果页数据
     def get_index_result(self, search, page=0):
-        if page == 0:
-            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid=0'.format(search=search)
-        else:
-            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid={page}'.format(search=search, page=page)
+        #请求url
+        url = 'https://sou.xanbhx.com/search?siteid=qula&q={search}'.format(search=search)
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        titles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@title')
-        urls  = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@href')
 
-        images = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-pic"]/a/img/@src')
-        profiles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/p[@class="result-game-item-desc"]/text()')
-        authors = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[1]/span[2]/text()')
-        styles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[2]/span[2]/text()')
-        states = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[3]/span[2]/text()')
-        for title, url, image, author, profile, style, state in zip(titles, urls, images, authors, profiles, styles,
-                                                                  states):
+        titles = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s2"]/a/text()')
+        urls = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s2"]/a/@href')
+        #images = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s2"]/a/@href')
+        authors = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s4"]/text()')
+        # 简介
+        #profiles  = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s2"]/a/@href')
+        times = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s6"]/text()')
+        styles= html.xpath('//div[@class="search-list"]/ul/li/span[@class="s1"]/text()')
+        states= html.xpath('//div[@class="search-list"]/ul/li/span[@class="s7"]/text()')
+
+        for title, url, author, style, state in zip(titles, urls, 
+                authors, styles, states):
+            title = title.strip()
+            pinyin_title = pinyin.convert_to_lazy_pinyin(title)
+
+            # 简介profiles
+            url = url[:-1] if url.endswith('/') else url
+            resp = self.parse_url(url)
+            html = etree.HTML(resp)
+            profile = html.xpath('//div[@id="maininfo"]/div[@id="intro"]/text()')[0]
+
             data = {
-                'title': title.strip(),
+                'title': title,
                 'url': url,
-                'image': image,
+                'image': "https://www.qu.la/BookFiles/BookImages/%s.jpg"%(pinyin_title),
                 'author': author.strip(),
                 'profile': profile.strip().replace('\u3000', '').replace('\n', ''),
                 'style': style.strip(),
@@ -60,10 +74,11 @@ class DdSpider(object):
 
     # 小说章节页数据
     def get_chapter(self, url):
+        url = url[:-1] if url.endswith('/') else url
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        chapters = html.xpath('//*[@class="listmain"]/dl/dd/a/text()')
-        urls = html.xpath('//*[@class="listmain"]/dl/dd/a/@href')
+        chapters = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/text()')
+        urls = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/@href')
 
         url = url.replace('index.html', '')
         for chapter_url, chapter in zip(urls, chapters):
@@ -82,12 +97,14 @@ class DdSpider(object):
             del content[0]
             #content[0] = content[0].replace('<', '&lt;')
             #content[0] = content[0].replace('>', '&gt;')
+        content = [text.replace('\u3000', '') for text in content]
         return '<br>'.join(content)
+
 
 
 #dd = DdSpider()
 '''
-for i in dd.get_index_result('赘婿',page=0):
+for i in dd.get_index_result('赘婿'):
     print(i)
 '''
 #url='http://www.shuquge.com/txt/73808/17088548.html'

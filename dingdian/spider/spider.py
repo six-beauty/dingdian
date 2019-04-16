@@ -77,11 +77,14 @@ class DdSpider(object):
         url = url[:-1] if url.endswith('/') else url
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        chapters = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/text()')
-        urls = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/@href')
+        chapters = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a[@style=""]/text()')
+        urls = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a[@style=""]/@href')
 
         url = url.replace('index.html', '')
         for chapter_url, chapter in zip(urls, chapters):
+            #qu.la 书趣阁特定的chapter_url，必须是 /book开始
+            if r'/book' != chapter_url[:5]:
+                continue
             data = {
                 'url': url + chapter_url,
                 'chapter': chapter
@@ -104,20 +107,18 @@ class DdSpider(object):
 
 #dd = DdSpider()
 '''
+#index test
 for i in dd.get_index_result('赘婿'):
     print(i)
 '''
-#url='http://www.shuquge.com/txt/73808/17088548.html'
-#print(dd.get_article(url))
 
 '''
-url = 'http://www.shuquge.com/txt/4833/index.html'
-chapter_dict={}
-for data in dd.get_chapter(url):
-    chapter_id = int(data['url'].split('/')[-1].split('.')[0])
-    #sort by chapter_id
-    chapter_dict[chapter_id] = {'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
-
-for chapter_id in sorted(chapter_dict.keys()):
-    print(chapter_id)
+# chapter test
+url='https://www.qu.la/book/285/'
+d1 = {}
+for chapter in dd.get_chapter(url):
+    chapter_id = chapter['url'].split('/')[-1].split('.')[0]
+    d1[int(chapter_id)] = chapter
+for chapter_id in sorted(d1.keys()):
+    print(d1[chapter_id])
 '''

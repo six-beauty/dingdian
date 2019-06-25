@@ -21,9 +21,9 @@ class DdSpider(object):
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
         }
 
-    def parse_url(self, url):
+    def parse_url(self, url, verify=True):
         try:
-            resp = requests.get(url, headers=self.headers)
+            resp = requests.get(url, headers=self.headers, verify=verify)
             if resp.status_code == 200:
                 # 处理一下网站打印出来中文乱码的问题
                 resp.encoding = 'utf-8'
@@ -37,7 +37,7 @@ class DdSpider(object):
     def get_index_result(self, search, page=0):
         #请求url
         url = 'https://sou.xanbhx.com/search?siteid=qula&q={search}'.format(search=search)
-        resp = self.parse_url(url)
+        resp = self.parse_url(url, verify=False)
         html = etree.HTML(resp)
 
         titles = html.xpath('//div[@class="search-list"]/ul/li/span[@class="s2"]/a/text()')

@@ -152,7 +152,7 @@ def letter_torecv(receiver):
     global rdb
     try:
         if not rdb:
-            rdb = redis.StrictRedis(host='127.0.0.1', port=52021, password='sany')
+            rdb = redis.StrictRedis(host='127.0.0.1', port=52022, password='sany')
 
         content = rdb.get('%s_content'%receiver)
         if content:

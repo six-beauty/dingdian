@@ -6,9 +6,9 @@
 
 {% block content %}
 <h3 align="center">{{chapter.chapter}}</h3><hr>
-<article class="art">
+<div id="content" class="art">
     {{ article.content | safe }}
-</article>
+</div>
 <hr>
 <div class="btn-group">
     <a href="{{url_for('main.prev',chapter_id=chapter.id)}}"><button type="button" class="btn btn-default">上一章</button></a>

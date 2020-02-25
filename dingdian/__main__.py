@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import sys
 import dingdian
-import gevent.wsgi
+import gevent.pywsgi
 import os
 import textwrap
 import typing
@@ -37,7 +37,7 @@ def main():
 
     if arguments.manage == 'run':
         try:
-            http_server = gevent.wsgi.WSGIServer((arguments.host, arguments.port), app, log=app.logger)
+            http_server = gevent.pywsgi.WSGIServer((arguments.host, arguments.port), app, log=app.logger)
             http_server.serve_forever()
         except KeyboardInterrupt:
             pass

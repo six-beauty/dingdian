@@ -1,4 +1,4 @@
-from flask import flash, render_template, url_for, redirect, request, current_app, jsonify
+from flask import flash, render_template, url_for, redirect, request, current_app, jsonify, make_response
 from flask.blueprints import Blueprint
 
 from dingdian import db
@@ -22,6 +22,7 @@ Insert.argument_for("mysql", "append_string", None)
 main = Blueprint('main', __name__)
 rdb = None
 
+last_article_id = None
 
 @main.errorhandler(404)
 def page_not_found(error):
@@ -125,10 +126,22 @@ def chapter(book_id):
 
     return render_template('chapter.html', book=book, chapters=chapters, pagination=pagination2, desc=desc)
 
+@main.route('/lastarticle')
+def last_article():
+    _lr = request.args.get('lr', 2, type=int)
+    global last_article_id
+    return redirect(url_for('main.next', chapter_id=last_article_id, lr=_lr))
+
 @main.route('/content/<int:chapter_id>')
-def content(chapter_id):
+def content(chapter_id, _lr=0):
     chapter = Chapter.query.filter_by(id=chapter_id).first()
     article = Article.query.filter_by(chapter_id=chapter_id).first()
+
+    _lr = request.args.get('lr', 1, type=int)
+    if _lr != 1:
+        global last_article_id
+        last_article_id = chapter_id
+
     if article:
         #需要更新
         if '正在手打中' in article.content or '内容更新后' in article.content:
@@ -139,13 +152,24 @@ def content(chapter_id):
                 db.session.commit()
 
         chapter = Chapter.query.filter_by(id=chapter_id).first()
-        return render_template('article.html', chapter=chapter, article=article, book_id=chapter.book_id)
+        if _lr == 3:
+            return article.content
+        elif _lr == 2:
+            return render_template('article2.html', chapter=chapter, article=article, book_id=chapter.book_id, _lr=_lr)
+        else:
+            return render_template('article.html', chapter=chapter, article=article, book_id=chapter.book_id)
 
     spider = DdSpider()
     article2 = Article(content=spider.get_article(chapter.chapter_url),
                       chapter_id=chapter_id)
     db.session.add(article2)
-    return render_template('article.html', chapter=chapter, article=article2, book_id=chapter.book_id)
+
+    if _lr == 3:
+        return article2.content
+    elif _lr == 2:
+        return render_template('article2.html', chapter=chapter, article=article2, book_id=chapter.book_id, _lr=_lr)
+    else:
+        return render_template('article.html', chapter=chapter, article=article2, book_id=chapter.book_id)
 
 @main.route('/letter/<receiver>')
 def letter_torecv(receiver):
@@ -185,10 +209,16 @@ def next(chapter_id):
     chapter = Chapter.query.filter_by(id=chapter_id).first()
     book = Novel.query.filter_by(id=chapter.book_id).first()
     all_chapters = [i for i in book.chapters]
+
+    _lr = request.args.get('lr', 1, type=int)
+
     # all_chapters是一个集合,通过操作数组很容易拿到下一章内容
     if all_chapters[-1] != chapter:
         next_chapter = all_chapters[all_chapters.index(chapter)+1]
-        return redirect(url_for('main.content', chapter_id=next_chapter.id))
+        if _lr == 1:
+            return redirect(url_for('main.content', chapter_id=next_chapter.id))
+        else:
+            return redirect(url_for('main.content', chapter_id=next_chapter.id, lr=_lr))
     else:
         chapter_dict = {}
         spider = DdSpider()
@@ -207,7 +237,10 @@ def next(chapter_id):
         #没有更新
         if len(chapter_dict) == 0 :
             flash('已是最后一章了。')
-            return redirect(url_for('main.content', chapter_id=chapter_id))
+            if _lr == 1:
+                return redirect(url_for('main.content', chapter_id=chapter_id))
+            else:
+                return redirect(url_for('main.content', chapter_id=chapter_id, lr=_lr))
 
     return next(chapter_id)
 

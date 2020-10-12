@@ -3,11 +3,14 @@ import requests
 from lxml import etree
 from requests.exceptions import ConnectionError
 import urllib.parse
-try:
-    import pinyin
-except:
-    from ..spider import pinyin
 
+def save_html(resp):
+    with open('1.html', 'w') as f:
+        f.write(resp)
+
+def read_html():
+    with open('1.html', 'r') as f:
+        return f.read()
 
 """
 爬虫api：
@@ -22,10 +25,9 @@ class DdSpider(object):
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
         }
 
-
-    def parse_url(self, url, verify=True):
+    def parse_url(self, url):
         try:
-            resp = requests.get('https://www.23us.us'+url, headers=self.headers, verify=verify)
+            resp = requests.get(url, headers=self.headers)
             if resp.status_code == 200:
                 # 处理一下网站打印出来中文乱码的问题
                 resp.encoding = 'utf-8'
@@ -38,103 +40,89 @@ class DdSpider(object):
     # 搜索结果页数据
     def get_index_result(self, search):
         #请求url
-        data = {'ie':'utf8', 'q':search}
-        url = 'https://www.23us.us/s.php?'+urllib.parse.urlencode(data)
+        data = {'q':search}
+        url = 'http://www.x23us.us/modules/article/search.php?'+urllib.parse.urlencode(data)
 
-        r = requests.get(url)
-        html = etree.HTML(r.text)
+        resp = self.parse_url(url)
+        #save_html(resp)
+        #resp = read_html()
+        html = etree.HTML(resp)
 
-        titles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/text()')
-        urls = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/@href')
-
-        images = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookimg"]/a/img/@src')
-        authors = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="author"]/text()')
+        titles = html.xpath('//table[@class="grid"]/tr[@id="nr"]/td[@class="odd"]/a/text()')
+        urls = html.xpath('//table[@class="grid"]/tr[@id="nr"]/td[@class="odd"]/a/@href')
+        #images = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookimg"]/a/img/@src')
+        authors = html.xpath('//table[@class="grid"]/tr[@id="nr"]/td[@class="odd"]/text()')
+        authors = [authors[_id] for _id in range(len(authors)) if _id%2==0 ]
         # 简介
-        profiles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/p/text()')
+        profiles = html.xpath('//table[@class="grid"]/tr[@id="nr"]/td[@class="even"]/a/text()')
+        #styles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="cat"]/text()')
+        states = html.xpath('//table[@class="grid"]/tr[@id="nr"]/td[@class="even"][@align="center"]/text()')
 
-        styles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="cat"]/text()')
-        states = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="update"]/a/text()')
-
-        for title, url, image, author, profile, style, state in zip(titles, urls, images,  
-                authors, profiles, styles, states):
-
-            title = title.encode('utf-8').decode('utf-8').strip()
-            author = author.encode('utf-8').decode('utf-8').strip()
-            profile = profile.encode('utf-8').decode('utf-8').strip()
-            author = author.encode('utf-8').decode('utf-8').strip()
-            pinyin_title = pinyin.convert_to_lazy_pinyin(title)
+        for title, url, author, profile, state in zip(titles, urls, authors, profiles, states):
 
             # 简介profiles
-            url = url[:-1] if url.endswith('/') else url
+            url = url[:-1] if url.endswith('/') else url 
 
             data = {
                 'title': title,
-                'url': url,
-                'image': 'https://www.23us.us'+image,
+                'url': url ,
+                'image': '',
                 'author': author.strip(),
-                'profile': profile.strip().replace('\u3000', '').replace('\n', ''),
-                'style': style[3:],
+                'profile': profile,
+                'style': '',
                 'state': state,
             }
             yield data
 
+
     # 小说章节页数据
     def get_chapter(self, url):
-        #resp = self.parse_url(url)
+        resp = self.parse_url(url)
 
-        chapter_url = 'https://www.23us.us'+url
-        print(chapter_url)
-        r = requests.get(chapter_url)
+        print(url)
+        html = etree.HTML(resp)
+        chapters = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/text()')
+        urls = html.xpath('//div[@class="box_con"]/div[@id="list"]/dl/dd/a/@href')
 
-        html = etree.HTML(r.text)
-        with open('source.html', 'w') as f:
-            f.write(r.text)
-        chapters = html.xpath('//div[@class="listmain"]/dl/dd/a/text()')
-        urls = html.xpath('//div[@class="listmain"]/dl/dd/a/@href')
+        url = url.replace('index.html', '')
         for chapter_url, chapter in zip(urls, chapters):
             data = {
-                'url': chapter_url,
-                'chapter': chapter.encode('utf-8').decode('utf-8'),
+                'url': 'http://www.x23us.us' + chapter_url,
+                'chapter': chapter
             }
             yield data
 
     # 章节内容页数据
     def get_article(self, url):
-        article_url = 'https://www.23us.us'+url
-        r = requests.get(article_url, timeout=10)
-
-        html = etree.HTML(r.text)
-        #with open('article.html', 'w') as f:
-        #    f.write(r.text)
-
-        content = html.xpath('//div[@class="content"]/div[@class="showtxt"]/text()')
-        print(content)
+        resp = self.parse_url(url)
+        html = etree.HTML(resp)
+        content = html.xpath('//*[@id="content"]/text()')
+        if len(content) == 0:
+            with open('1.html', 'w') as f:
+                f.write(resp)
         if '<' in content[0] or '>' in content[0]:
             del content[0]
             #content[0] = content[0].replace('<', '&lt;')
             #content[0] = content[0].replace('>', '&gt;')
-        return '<br>'.join([c.encode('utf-8').decode('utf-8') for c in content])
+        return '<br>'.join(content)
 
 
 if __name__=='__main__':
     dd = DdSpider()
-    #for i in dd.get_index_result('覆手'):
-    #    print(i)
+    for i in dd.get_index_result('赘婿'):
+        print(i)
 
-    #for chapter in dd.get_chapter('/html/32/32187'):
-    #    print(chapter)
+    #url = 'http://www.x23us.us/72_72292/34200559.html'
+    #print(dd.get_article(url))
 
-    #https://www.23us.us/html/32/32187/22363195.html
-    print(dd.get_article('/html/32/32187/22363195.html'))
+    '''
+    url='http://www.x23us.us/72_72292/'
+    chapter_dict={}
+    for data in dd.get_chapter(url):
+        chapter_id = int(data['url'].split('/')[-1].split('.')[0])
+        #sort by chapter_id
+        chapter_dict[chapter_id] = {'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
 
-
-    #with open('article.html', 'r') as f:
-    #    r_text = f.read()
-    #html = etree.HTML(r_text)
-
-    #content = html.xpath('//div[@class="content"]/div[@class="showtxt"]/text()')
-    #if '<' in content[0] or '>' in content[0]:
-    #    del content[0]
-    #    #content[0] = content[0].replace('<', '&lt;')
-    #    #content[0] = content[0].replace('>', '&gt;')
-    #print('<br>'.join([c.encode('utf-8').decode('utf-8') for c in content]))
+    for chapter_id in sorted(chapter_dict.keys()):
+        print(chapter_id, chapter_dict[chapter_id])
+    '''

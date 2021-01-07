@@ -8,7 +8,7 @@ then
     echo 'dingdian still running, '${#run_status}
     exit 0
 else
-    nohup python dingd.py --manage run --port $svr_port > /dev/null 2>&1 &
+    nohup /usr/local/python3.6/bin/python3.6 dingd.py --manage run --port $svr_port > /dev/null 2>&1 &
     echo 'dingdian stop('${#run_status}'), start work!'$(date +"%H:%M:%S")
 fi
 

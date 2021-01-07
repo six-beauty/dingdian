@@ -2,8 +2,6 @@
 import requests
 from lxml import etree
 from requests.exceptions import ConnectionError
-from selenium import webdriver
-from selenium.webdriver.support.wait import WebDriverWait
 import urllib.parse
 try:
     import pinyin
@@ -24,7 +22,6 @@ class DdSpider(object):
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:54.0) Gecko/20100101 Firefox/54.0'
         }
 
-        self.driver = None
 
     def parse_url(self, url, verify=True):
         try:
@@ -44,12 +41,8 @@ class DdSpider(object):
         data = {'ie':'utf8', 'q':search}
         url = 'https://www.23us.us/s.php?'+urllib.parse.urlencode(data)
 
-        if not self.driver:
-            self.driver = webdriver.PhantomJS()
-        self.driver.get(url)
-        WebDriverWait(self.driver, 10).until(lambda x: x.find_element_by_xpath("//div[@class='so_list bookcase']").is_displayed())  
-        resp = self.driver.page_source
-        html = etree.HTML(resp)
+        r = requests.get(url)
+        html = etree.HTML(r.text)
 
         titles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/text()')
         urls = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/@href')
@@ -89,18 +82,13 @@ class DdSpider(object):
     def get_chapter(self, url):
         #resp = self.parse_url(url)
 
-        if not self.driver:
-            self.driver = webdriver.PhantomJS()
-        #print('url:', 'https://www.23us.us'+url)
         chapter_url = 'https://www.23us.us'+url
         print(chapter_url)
-        self.driver.get(chapter_url)
-        WebDriverWait(self.driver, 10).until(lambda x: x.find_element_by_xpath("//div[@class='listmain']").is_displayed())  
-        resp = self.driver.page_source
+        r = requests.get(chapter_url)
 
-        html = etree.HTML(resp)
+        html = etree.HTML(r.text)
         with open('source.html', 'w') as f:
-            f.write(resp)
+            f.write(r.text)
         chapters = html.xpath('//div[@class="listmain"]/dl/dd/a/text()')
         urls = html.xpath('//div[@class="listmain"]/dl/dd/a/@href')
         for chapter_url, chapter in zip(urls, chapters):
@@ -112,18 +100,14 @@ class DdSpider(object):
 
     # 章节内容页数据
     def get_article(self, url):
-        #resp = self.parse_url(url)
-
-        if not self.driver:
-            self.driver = webdriver.PhantomJS()
         article_url = 'https://www.23us.us'+url
-        print(article_url)
-        self.driver.get(article_url)
-        WebDriverWait(self.driver, 10).until(lambda x: x.find_element_by_xpath("//div[@class='content']").is_displayed())  
-        resp = self.driver.page_source
+        r = requests.get(article_url)
 
-        html = etree.HTML(resp)
-        content = html.xpath('//div[@class="content"]/div[@id="content"]/text()')
+        html = etree.HTML(r.text)
+        #with open('article.html', 'w') as f:
+        #    f.write(r.text)
+
+        content = html.xpath('//div[@class="content"]/div[@class="showtxt"]/text()')
         print(content)
         if '<' in content[0] or '>' in content[0]:
             del content[0]
@@ -134,11 +118,23 @@ class DdSpider(object):
 
 if __name__=='__main__':
     dd = DdSpider()
-    #for i in dd.get_index_result('赘婿'):
+    #for i in dd.get_index_result('覆手'):
     #    print(i)
 
-    #for chapter in dd.get_chapter('/html/21/21740'):
+    #for chapter in dd.get_chapter('/html/32/32187'):
     #    print(chapter)
 
-    print(dd.get_article('/html/19/19916/7312084.html'))
+    #https://www.23us.us/html/32/32187/22363195.html
+    print(dd.get_article('/html/32/32187/22363195.html'))
 
+
+    #with open('article.html', 'r') as f:
+    #    r_text = f.read()
+    #html = etree.HTML(r_text)
+
+    #content = html.xpath('//div[@class="content"]/div[@class="showtxt"]/text()')
+    #if '<' in content[0] or '>' in content[0]:
+    #    del content[0]
+    #    #content[0] = content[0].replace('<', '&lt;')
+    #    #content[0] = content[0].replace('>', '&gt;')
+    #print('<br>'.join([c.encode('utf-8').decode('utf-8') for c in content]))

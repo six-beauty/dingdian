@@ -36,6 +36,17 @@ def page_not_found(error):
 def internal_server_error(error):
     return render_template('500.html'), 500
 
+@main.route('/xwf', methods=['GET', 'POST'])
+def td_photo():
+    return render_template("3d_photo.html")
+
+@main.route('/3dphoto/<name>', methods=['GET', 'POST'])
+def td_photo2(name):
+    with open('dingdian/static/img/%s/title'%name, 'r') as f:
+        title = f.readline()
+        h1 = f.readline()
+    return render_template("3d_photo_template.html", title=title, h1=h1, name=name)
+
 @main.route('/', methods=['GET', 'POST'])
 @main.route('/index', methods=['GET', 'POST'])
 def index():

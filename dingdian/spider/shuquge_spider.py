@@ -2,7 +2,7 @@
 import requests
 from lxml import etree
 from requests.exceptions import ConnectionError
-
+import urllib.parse
 
 """
 爬虫api：
@@ -30,33 +30,41 @@ class DdSpider(object):
         return None
 
     # 搜索结果页数据
-    def get_index_result(self, search, page=0):
-        if page == 0:
-            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid=0'.format(search=search)
-        else:
-            url = 'http://zhannei.baidu.com/cse/search?q={search}&s=6445266503022880974&srt=def&nsid={page}'.format(search=search, page=page)
+    def get_index_result(self, search):
+        #请求url
+        data = {'searchkey':search}
+        url = 'http://www.shuquge.com/search.php?'+urllib.parse.urlencode(data)
+
         resp = self.parse_url(url)
         html = etree.HTML(resp)
-        titles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@title')
-        urls  = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/h3/a/@href')
 
-        images = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-pic"]/a/img/@src')
-        profiles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/p[@class="result-game-item-desc"]/text()')
-        authors = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[1]/span[2]/text()')
-        styles = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[2]/span[2]/text()')
-        states = html.xpath('//div[@class="result-item result-game-item"]//div[@class="result-game-item-detail"]/div[@class="result-game-item-info"]/p[3]/span[2]/text()')
-        for title, url, image, author, profile, style, state in zip(titles, urls, images, authors, profiles, styles,
-                                                                  states):
+        titles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/text()')
+        urls = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/h4[@class="bookname"]/a/@href')
+
+        #images = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookimg"]/a/img/@src')
+        authors = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="author"]/text()')
+        # 简介
+        #profiles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/p/text()')
+
+        styles = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="cat"]/text()')
+        states = html.xpath('//div[@class="bookbox"]/div[@class="p10"]/div[@class="bookinfo"]/div[@class="update"]/a/text()')
+
+        for title, url, author, style, state in zip(titles, urls, authors, styles, states):
+
+            # 简介profiles
+            url = url[:-1] if url.endswith('/') else url 
+
             data = {
-                'title': title.strip(),
-                'url': url,
-                'image': image,
+                'title': title,
+                'url': 'http://www.shuquge.com'+ url ,
+                'image': '',
                 'author': author.strip(),
-                'profile': profile.strip().replace('\u3000', '').replace('\n', ''),
-                'style': style.strip(),
-                'state': state.strip()
+                'profile': '',
+                'style': style[3:],
+                'state': state,
             }
             yield data
+
 
     # 小说章节页数据
     def get_chapter(self, url):
@@ -78,29 +86,32 @@ class DdSpider(object):
         resp = self.parse_url(url)
         html = etree.HTML(resp)
         content = html.xpath('//*[@id="content"]/text()')
+        print(url, len(content))
+        if len(content) == 0:
+            with open('1.html', 'w') as f:
+                f.write(resp.text)
         if '<' in content[0] or '>' in content[0]:
             del content[0]
             #content[0] = content[0].replace('<', '&lt;')
             #content[0] = content[0].replace('>', '&gt;')
         return '<br>'.join(content)
 
+if __name__=='__main__':
+    dd = DdSpider()
+    for i in dd.get_index_result('赘婿'):
+        print(i)
 
-#dd = DdSpider()
-'''
-for i in dd.get_index_result('赘婿',page=0):
-    print(i)
-'''
-#url='http://www.shuquge.com/txt/73808/17088548.html'
-#print(dd.get_article(url))
+    #url='http://www.shuquge.com/txt/4833/30735718.html'
+    #print(dd.get_article(url))
 
-'''
-url = 'http://www.shuquge.com/txt/4833/index.html'
-chapter_dict={}
-for data in dd.get_chapter(url):
-    chapter_id = int(data['url'].split('/')[-1].split('.')[0])
-    #sort by chapter_id
-    chapter_dict[chapter_id] = {'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
+    '''
+    url = 'http://www.shuquge.com/txt/4833/index.html'
+    chapter_dict={}
+    for data in dd.get_chapter(url):
+        chapter_id = int(data['url'].split('/')[-1].split('.')[0])
+        #sort by chapter_id
+        chapter_dict[chapter_id] = {'chapter_id':chapter_id, 'chapter':data['chapter'], 'chapter_url':data['url']}
 
-for chapter_id in sorted(chapter_dict.keys()):
-    print(chapter_id)
-'''
+    for chapter_id in sorted(chapter_dict.keys()):
+        print(chapter_id, chapter_dict[chapter_id])
+    '''

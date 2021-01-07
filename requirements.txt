@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Markdown==2.6.9
 MarkupSafe==1.0
 mercurial==2.6.2
@@ -20,3 +21,9 @@ urlgrabber==3.10
 urllib3==1.22
 Werkzeug==1.0.1
 yum-metadata-parser==1.1.4
+=======
+MarkupSafe==0.23
+requests==2.14.2
+SQLAlchemy==1.0.13
+WTForms==2.1
+>>>>>>> 508266beb7b16b7ad9985c69c65c7dd55f7afa1c

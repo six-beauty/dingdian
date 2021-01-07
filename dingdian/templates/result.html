@@ -6,7 +6,7 @@
 
 {% block content %}
 <div>
-    <a href="{{url_for('main.index')}}">
+    <a href="{{url_for('main.index',lr=lr)}}">
     <button type="button" class="btn btn-default btn-sm">
       <span class="glyphicon glyphicon-search"></span> 返回搜索
     </button>
@@ -25,7 +25,7 @@
                     <img class="img" src="{{i.book_img}}">
                 </td>
                 <td>
-                    <a href="{{url_for('main.chapter',book_id=i.id)}}">{{i.book_name}}</a>
+                    <a href="{{url_for('main.chapter',book_id=i.id,lr=lr)}}">{{i.book_name}}</a>
                     <p><b>简介：</b>{{i.profile | safe}}</p>
                     <p><b>作者：</b>{{i.author}}</p>
                     <p><b>类型：</b>{{i.style}}</p>
@@ -38,12 +38,12 @@
 {% endfor %}
 <ul class="pager">
     {% if page-1 != -1 %}
-	<li class="previous"><a href="{{url_for('main.result',search=search,page=page-1)}}">&larr; Older</a></li>
+	<li class="previous"><a href="{{url_for('main.result',search=search,page=page-1,lr=lr)}}">&larr; Older</a></li>
     {% else %}
     <li class="previous disable">&larr; Older</li>
     {% endif %}
     {% if page+1 !=10 %}
-	<li class="next"><a href="{{url_for('main.result',search=search,page=page+1)}}">Newer &rarr;</a></li>
+	<li class="next"><a href="{{url_for('main.result',search=search,page=page+1,lr=lr)}}">Newer &rarr;</a></li>
     {% else %}
     <li class="next disable">Newer &rarr;</li>
     {% endif %}

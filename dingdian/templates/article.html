@@ -12,8 +12,8 @@
 </div>
 <hr>
 <div class="btn-group">
-    <a href="{{url_for('main.prev',chapter_id=chapter.id)}}"><button type="button" class="btn btn-default">上一章</button></a>
-    <a href="{{url_for('main.chapter',book_id=book_id)}}"><button type="button" class="btn btn-default">返回目录</button></a>
-    <a href="{{url_for('main.next',chapter_id=chapter.id)}}"><button type="button" class="btn btn-default">下一章</button></a>
+    <a href="{{url_for('main.prev',chapter_id=chapter.id, lr=lr)}}"><button type="button" class="btn btn-default">上一章</button></a>
+    <a href="{{url_for('main.chapter',book_id=book_id, lr=lr)}}"><button type="button" class="btn btn-default">返回目录</button></a>
+    <a href="{{url_for('main.next',chapter_id=chapter.id, lr=lr)}}"><button type="button" class="btn btn-default">下一章</button></a>
 </div>
 {% endblock %}

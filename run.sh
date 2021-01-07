@@ -1,7 +1,7 @@
 svr_port=5003
 cur_dir=$(pwd)
 
-run_status=$(/usr/sbin/lsof -nP -s TCP:LISTEN -i TCP:$svr_port |grep python)
+run_status=$(/usr/bin/lsof -nP -s TCP:LISTEN -i TCP:$svr_port |grep python)
 
 if [[ ${#run_status} > 0 ]];
 then
